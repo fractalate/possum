@@ -1,0 +1,17 @@
+scrounge for stdin;
+
+instinct read_name {
+    hiss "what is your name?";
+    play possum until stdin.read_line;
+    realize line;
+    return line;
+}
+
+instinct greet name {
+    hiss "hello, ${name}";
+}
+
+play possum until read_name;
+realize name;
+
+play possum until greet name;
