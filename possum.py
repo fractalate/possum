@@ -17,12 +17,14 @@ KEYWORDS = {
     "mosey",
     "not",
     "or",
+    "pouch",
     "play",
     "bring",
     "scrounge",
     "sniff",
     "stash",
     "true",
+    "unless",
 }
 
 
@@ -223,6 +225,19 @@ class Sniff:
 
 
 @dataclass
+class Unless:
+    condition: Any
+    then_block: Block
+    else_block: Block | None
+
+    def run(self, env: "Environment") -> None:
+        if not possum_truthy(self.condition.eval(env)):
+            self.then_block.run(Environment(env))
+        elif self.else_block is not None:
+            self.else_block.run(Environment(env))
+
+
+@dataclass
 class Mosey:
     condition: Any
     body: Block
@@ -266,6 +281,14 @@ class Literal:
         if isinstance(self.value, str):
             return interpolate(self.value, env)
         return self.value
+
+
+@dataclass
+class PouchLiteral:
+    items: list[Any]
+
+    def eval(self, env: "Environment") -> Any:
+        return [item.eval(env) for item in self.items]
 
 
 @dataclass
@@ -457,6 +480,11 @@ class Parser:
             then_block = self.block()
             else_block = self.block() if self.match("ELSE") else None
             return Sniff(condition, then_block, else_block)
+        if self.match("UNLESS"):
+            condition = self.expression()
+            then_block = self.block()
+            else_block = self.block() if self.match("ELSE") else None
+            return Unless(condition, then_block, else_block)
         if self.match("MOSEY"):
             condition = self.expression()
             return Mosey(condition, self.block())
@@ -540,6 +568,8 @@ class Parser:
             return Literal(False)
         if self.match("DEAD"):
             return Literal(None)
+        if self.match("POUCH"):
+            return self.pouch_literal()
         if self.match("IDENT"):
             return Variable(self.previous())
         if self.match("PLAY"):
@@ -559,6 +589,17 @@ class Parser:
             return expr
         token = self.peek()
         raise PossumError(f"{token.line}:{token.column}: expected expression")
+
+    def pouch_literal(self):
+        self.consume("{", "expected '{' after pouch")
+        items = []
+        if not self.check("}"):
+            while True:
+                items.append(self.expression())
+                if not self.match(","):
+                    break
+        self.consume("}", "expected '}' after pouch")
+        return PouchLiteral(items)
 
     def match(self, *kinds: str) -> bool:
         if self.check(*kinds):
@@ -610,7 +651,15 @@ def require_number(value: Any, token: Token) -> int | float:
     return value
 
 
+def require_pouch(value: Any, token: Token) -> list[Any]:
+    if not isinstance(value, list):
+        raise PossumError(f"{token.line}:{token.column}: expected a pouch")
+    return value
+
+
 def possum_truthy(value: Any) -> bool:
+    if isinstance(value, list):
+        return len(value) > 0
     return value not in (False, None, 0, "")
 
 
@@ -621,7 +670,26 @@ def possum_text(value: Any) -> str:
         return "true"
     if value is False:
         return "false"
+    if isinstance(value, list):
+        return "pouch {" + ", ".join(possum_text(item) for item in value) + "}"
     return str(value)
+
+
+def pouch_count(value: Any) -> int:
+    return len(require_pouch(value, Token("BUILTIN", "pouch_count", 0, 0)))
+
+
+def pouch_pick(value: Any, index: Any) -> Any:
+    token = Token("BUILTIN", "pouch_pick", 0, 0)
+    pouch = require_pouch(value, token)
+    at = int(require_number(index, token))
+    if at < 0 or at >= len(pouch):
+        raise PossumError(f"pouch_pick failed: index {at} out of range")
+    return pouch[at]
+
+
+def pouch_push(value: Any, item: Any) -> list[Any]:
+    return [*require_pouch(value, Token("BUILTIN", "pouch_push", 0, 0)), item]
 
 
 def root_environment() -> Environment:
@@ -629,6 +697,9 @@ def root_environment() -> Environment:
     env.define("single_space", Builtin("single_space", 1, lambda value: " ".join(possum_text(value).split())))
     env.define("number", Builtin("number", 1, lambda value: float(value) if "." in possum_text(value) else int(value)))
     env.define("text", Builtin("text", 1, possum_text))
+    env.define("pouch_count", Builtin("pouch_count", 1, pouch_count))
+    env.define("pouch_pick", Builtin("pouch_pick", 2, pouch_pick))
+    env.define("pouch_push", Builtin("pouch_push", 2, pouch_push))
     return env
 
 

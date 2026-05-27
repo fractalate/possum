@@ -12,6 +12,8 @@ stash age = 4;
 stash snack = "apple";
 stash awake = true;
 stash missing = dead;
+stash snacks = pouch { "persimmon", "grub", "apple core" };
+stash empty_snacks = pouch {};
 ```
 
 Strings interpolate simple stash names with `${name}`.
@@ -24,6 +26,7 @@ name = expression;
 hiss expression;
 scrounge "prompt" -> name;
 sniff condition { ... } else { ... }
+unless condition { ... } else { ... }
 mosey condition { ... }
 instinct name(scrap, other) { ... }
 bring expression;
@@ -34,6 +37,9 @@ bring expression;
 ```possum
 scrounge -> line;
 ```
+
+`unless` runs its first block when the condition is falsey. If an `else` block
+is present, it runs when the condition is truthy.
 
 ## Calls
 
@@ -52,11 +58,17 @@ An `instinct` without an explicit `bring` returns `dead`.
 play single_space(value)
 play number(value)
 play text(value)
+play pouch_count(pouch)
+play pouch_pick(pouch, index)
+play pouch_push(pouch, value)
 ```
+
+Pouch literals always require `pouch`; Possum does not have bare square-bracket
+list syntax.
 
 ## Truth
 
-`false`, `dead`, `0`, and `""` are falsey. All other values are truthy.
+`false`, `dead`, `0`, `""`, and empty pouches are falsey. All other values are truthy.
 
 ## Operator Order
 

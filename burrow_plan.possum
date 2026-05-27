@@ -31,7 +31,7 @@ instinct danger_for(night, rain) {
 }
 
 instinct mood_for(food, danger) {
-    sniff food <= 0 {
+    unless food > 0 {
         bring "playing dead";
     } else {
         sniff danger >= 6 {
@@ -51,11 +51,14 @@ instinct plan_nights(start_stash, nights, rain) {
     stash pantry = start_stash;
     stash best_stash = start_stash;
     stash hungry_nights = 0;
+    stash favorite_scraps = pouch { "persimmon", "grub", "apple core" };
 
     mosey night <= nights and pantry > 0 {
         stash danger = play danger_for(night, rain);
         stash found = play night_finds(night, danger);
         stash spent = 5 + danger;
+        stash snack_index = night % play pouch_count(favorite_scraps);
+        stash snack = play pouch_pick(favorite_scraps, snack_index);
 
         pantry = pantry + found - spent;
 
@@ -68,7 +71,7 @@ instinct plan_nights(start_stash, nights, rain) {
         }
 
         stash mood = play mood_for(pantry, danger);
-        hiss "night ${night}: found ${found}, spent ${spent}, stash ${pantry}, mood ${mood}";
+        hiss "night ${night}: found ${found}, spent ${spent}, stash ${pantry}, snack ${snack}, mood ${mood}";
 
         night = night + 1;
     }

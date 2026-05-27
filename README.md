@@ -32,6 +32,7 @@ Possum programs are built from a few plain instincts:
 - `hiss value;` prints a value.
 - `scrounge "prompt" -> name;` reads one line from standard input.
 - `sniff condition { ... } else { ... }` chooses a path.
+- `unless condition { ... } else { ... }` chooses the cautious path when something is not true.
 - `mosey condition { ... }` repeats while a condition stays true.
 - `instinct name(scrap, other) { ... }` defines a function.
 - `bring value;` returns from an instinct.
@@ -48,6 +49,7 @@ Possum supports numbers, strings, booleans, and `dead`.
 stash total = 3 * (4 + 2);
 stash same = total == 18;
 stash message = "total is ${total}";
+stash snacks = pouch { "persimmon", "grub", "apple core" };
 ```
 
 Operators:
@@ -62,13 +64,18 @@ and
 or
 ```
 
-Falsey values are `false`, `dead`, `0`, and `""`. Everything else is truthy.
+Falsey values are `false`, `dead`, `0`, `""`, and empty pouches. Everything else is truthy.
 
 ## Builtins
 
 - `play single_space(text)` trims repeated whitespace down to single spaces.
 - `play number(text)` converts text to a number.
 - `play text(value)` converts a value to display text.
+- `play pouch_count(pouch)` returns the number of scraps in a pouch.
+- `play pouch_pick(pouch, index)` returns one scrap by zero-based index.
+- `play pouch_push(pouch, value)` returns a new pouch with one more scrap.
+
+Pouches must use the `pouch` keyword. There is no bare square-bracket list syntax.
 
 ## Example
 
