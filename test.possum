@@ -1,0 +1,26 @@
+instinct three_n(n) {
+    sniff n <= 1 {
+        bring 1;
+    } else {
+        sniff n % 2 == 0 {
+            bring n / 2;
+        } else {
+            bring 3 * n + 1;
+        }
+    }
+}
+
+instinct collatz(n) {
+    stash count = 1;
+
+    mosey n > 1 {
+        n = play three_n(n);
+        count = count + 1;
+    }
+
+    bring count;
+}
+
+stash start = 1023;
+stash result = play collatz(start);
+hiss "${start} plays dead after ${result} steps";

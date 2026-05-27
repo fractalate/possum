@@ -1,0 +1,93 @@
+# Burrow Plan
+#
+# Simulates several nights of foraging. The planner starts with a food stash,
+# spends food each night, gains food from scouting, and stops early if the stash
+# is no longer enough to stay awake.
+
+instinct night_finds(night, caution) {
+    sniff caution > 7 {
+        bring 2 + night % 2;
+    } else {
+        sniff night % 3 == 0 {
+            bring 8;
+        } else {
+            sniff night % 2 == 0 {
+                bring 6;
+            } else {
+                bring 4;
+            }
+        }
+    }
+}
+
+instinct danger_for(night, rain) {
+    stash danger = night % 4;
+
+    sniff rain {
+        danger = danger + 2;
+    }
+
+    bring danger;
+}
+
+instinct mood_for(food, danger) {
+    sniff food <= 0 {
+        bring "playing dead";
+    } else {
+        sniff danger >= 6 {
+            bring "wide-eyed";
+        } else {
+            sniff food >= 30 {
+                bring "smug";
+            } else {
+                bring "sniffing";
+            }
+        }
+    }
+}
+
+instinct plan_nights(start_stash, nights, rain) {
+    stash night = 1;
+    stash pantry = start_stash;
+    stash best_stash = start_stash;
+    stash hungry_nights = 0;
+
+    mosey night <= nights and pantry > 0 {
+        stash danger = play danger_for(night, rain);
+        stash found = play night_finds(night, danger);
+        stash spent = 5 + danger;
+
+        pantry = pantry + found - spent;
+
+        sniff pantry > best_stash {
+            best_stash = pantry;
+        }
+
+        sniff pantry < 10 {
+            hungry_nights = hungry_nights + 1;
+        }
+
+        stash mood = play mood_for(pantry, danger);
+        hiss "night ${night}: found ${found}, spent ${spent}, stash ${pantry}, mood ${mood}";
+
+        night = night + 1;
+    }
+
+    sniff pantry <= 0 {
+        hiss "the plan ended early after night ${night}";
+    } else {
+        hiss "the plan covered all ${nights} nights";
+    }
+
+    hiss "best stash: ${best_stash}";
+    hiss "hungry nights: ${hungry_nights}";
+    bring pantry;
+}
+
+stash initial_stash = 24;
+stash planned_nights = 9;
+stash rain = true;
+
+hiss "burrow plan: stash ${initial_stash}, nights ${planned_nights}, rain ${rain}";
+stash final_stash = play plan_nights(initial_stash, planned_nights, rain);
+hiss "final stash: ${final_stash}";

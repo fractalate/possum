@@ -1,17 +1,13 @@
-scrounge for stdin;
+instinct greet(name) {
+    stash clean_name = play single_space(name);
 
-instinct read_name {
-    hiss "what is your name?";
-    play possum until stdin.read_line;
-    realize line;
-    return line;
+    sniff clean_name == "" {
+        bring "hello, mysterious night friend";
+    } else {
+        bring "hello, ${clean_name}";
+    }
 }
 
-instinct greet name {
-    hiss "hello, ${name}";
-}
-
-play possum until read_name;
-realize name;
-
-play possum until greet name;
+scrounge "what name should I sniff for? " -> name;
+stash message = play greet(name);
+hiss message;
